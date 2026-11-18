@@ -5,6 +5,8 @@
  * Use the RESTlet `closeDay` action when the counted cash comes from the
  * register.
  *
+ * Script record, deployment, and parameters: src/netsuite/deploy/manifest.ts
+ *
  * @NApiVersion 2.1
  * @NScriptType ScheduledScript
  * @NModuleScope SameAccount
@@ -13,14 +15,16 @@
 import { EntryPoints } from 'N/types';
 import * as format from 'N/format';
 import { shouldYield } from '../../utils/governance';
-import { defaultNetSuiteConfig } from '../../adapter/config';
 import { param, shopfloor } from '../../adapter/runtime';
 import { netSuiteLogger } from '../../adapter/index';
+import { SCRIPTS } from '../../deploy/manifest';
+
+const P = SCRIPTS.dailyClose.params;
 
 export const execute: EntryPoints.Scheduled.execute = (): void => {
   if (shouldYield()) return;
-  const sf = shopfloor(defaultNetSuiteConfig, 'retail');
-  const override = param(defaultNetSuiteConfig.params.closeDate);
+  const sf = shopfloor(P.profile.id, 'retail');
+  const override = param(P.date.id);
   const date = override
     ? String(override)
     : (format.format({ value: new Date(), type: format.Type.DATE }) as string);

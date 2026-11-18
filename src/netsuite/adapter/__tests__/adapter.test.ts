@@ -33,13 +33,6 @@ describe('config', () => {
     expect(c.sales.columns.payment).toBe('paymentmethod');
     expect(defaultNetSuiteConfig.inventory.columns.leadtime).toBe('leadtime');
   });
-
-  it('keeps script parameter ids within the NetSuite length limit', () => {
-    for (const id of Object.values(defaultNetSuiteConfig.params)) {
-      expect(id.startsWith('custscript_')).toBe(true);
-      expect(id.length).toBeLessThanOrEqual(30);
-    }
-  });
 });
 
 describe('NetSuiteBackend', () => {

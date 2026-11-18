@@ -1,16 +1,84 @@
 # Shopfloor
 
-An open-source, TypeScript-first SuiteScript 2.1 starter for **small companies,
-light manufacturers, and local shops** running NetSuite.
+Open-source operations logic for **small companies, light manufacturers, and
+local shops**: inventory reorder, production planning, and daily close-out.
+Written in TypeScript, platform-agnostic at the core, with a ready-to-deploy
+**NetSuite** adapter.
 
-Most NetSuite examples are either one-off snippets or enterprise frameworks.
-This repo sits in between: a small, tested codebase with ready-to-deploy
-modules for the problems a 5 to 200 person business actually has, plus a clean
-layered architecture so you can add your own without making a mess.
+Most ERP examples are either one-off snippets or enterprise frameworks. This
+repo sits in between: a small, tested codebase that solves the problems a 5 to
+200 person business actually has, built so the business rules do not care which
+system holds the data.
 
 > Status: example / reference implementation. Every module ships in **dry-run
 > mode** so you can see what it would do before it writes a single record.
 > Try it in a sandbox account first.
+
+## How it is organized
+
+```mermaid
+flowchart TD
+  subgraph core["src/core (no platform code)"]
+    P[profiles: business rules as data]
+    D[domain: pure math]
+    S[services: InventoryService, ProductionService, RetailService]
+    I[ports: StockSource, PurchaseOrderWriter, WorkOrderWriter, SalesSource]
+    M[adapters/memory: in-memory backend for tests and demos]
+    P --> S
+    D --> S
+    S --> I
+    M -. implements .-> I
+  end
+  subgraph ns["src/netsuite"]
+    A[adapter: implements the ports, config.ts holds all field and record ids]
+    SC[scripts: thin SuiteScript entry points]
+    DM[deploy/manifest.ts: script records, deployments, parameters]
+  end
+  A -. implements .-> I
+  SC --> A
+  DM --> X[suitecloud/src/Objects/*.xml, generated]
+```
+
+| Folder | What lives there | Depends on |
+|---|---|---|
+| `src/core/profiles` | Business profiles (general, manufacturing, retail) as plain data | nothing |
+| `src/core/domain` | Reorder, build sizing, BOM, daily close math. Pure functions | profiles |
+| `src/core/ports` | The small interfaces a back end must implement | domain types |
+| `src/core/services` | Orchestration: plan, dry run, write | ports |
+| `src/core/adapters/memory` | A working back end with plain arrays | ports |
+| `src/netsuite/adapter` | NetSuite implementation of the ports + `config.ts` | core, N/* |
+| `src/netsuite/scripts` | Scheduled scripts and the RESTlet | adapter |
+| `src/netsuite/deploy` | Deployment manifest for SuiteCloud | nothing |
+
+`src/core` never imports NetSuite. ESLint and `npm run agent:validate` both fail
+if it does.
+
+### Using the core without NetSuite
+
+```ts
+import { InventoryService, MemoryBackend, getProfile } from './src/core/index';
+
+const db = new MemoryBackend({
+  stock: [{ itemId: 'BOLT-M6', name: 'M6 bolt', available: 40, onOrder: 0, dailyDemand: 12, vendorId: 'acme' }],
+});
+const reorder = new InventoryService({ stock: db, purchaseOrders: db }, getProfile('manufacturing'));
+console.log(reorder.run().suggestions); // dry run by default
+```
+
+To support another system (a database, CSV files, Odoo, QuickBooks), implement
+the four interfaces in `src/core/ports/index.ts`. The services do not change.
+
+### Configuring NetSuite
+
+Everything account-specific lives in
+[`src/netsuite/adapter/config.ts`](src/netsuite/adapter/config.ts): record
+types, search columns, saved search ids, extra filters, and default field
+values for generated purchase orders and work orders. If your account keeps
+lead time in a custom field, change one line:
+
+```ts
+columns: { ...defaults, leadtime: 'custitem_lead_days' }
+```
 
 ## Who it is for
 
@@ -23,9 +91,9 @@ layered architecture so you can add your own without making a mess.
 ## Business profiles
 
 All the business rules live in one plain-data file:
-[`src/profiles/index.ts`](src/profiles/index.ts). Choose one per script
-deployment with the `custscript_business_profile` parameter. Unknown or blank
-values fall back to `general`.
+[`src/core/profiles/index.ts`](src/core/profiles/index.ts). In NetSuite, each
+script deployment has a **Business profile** parameter. Unknown or blank values
+fall back to `general`.
 
 | Setting | general | manufacturing | retail |
 |---|---|---|---|
@@ -44,7 +112,7 @@ it to `PROFILES`.
 ## Modules
 
 ### Inventory reorder (all profiles)
-`ss_inventory_reorder.ts` runs nightly. For each active inventory item it
+`ss_inventory_reorder.ts` runs on the schedule you set. For each active inventory item it
 works out:
 
 - **Reorder point**: the item's own value, or `daily demand x (lead time + safety days)`
@@ -54,7 +122,7 @@ works out:
 
 Suggestions are grouped into **one purchase order per preferred vendor**.
 Items with no vendor are listed in the log so someone can sort them out.
-Turn on `custscript_reorder_create_pos` once the dry-run output looks right.
+Tick **Create purchase orders** on the deployment once the dry-run output looks right.
 
 ### Production planning (manufacturing)
 `ProductionService.scheduleBuild()` turns open demand into a work order:
@@ -88,38 +156,65 @@ profile tolerance is logged at EMERGENCY level so it shows up in alerts.
 ```sh
 nvm use               # Node 22 (see .nvmrc)
 npm install
-npm test              # 94 tests, no NetSuite account needed
-npm run build         # TypeScript -> AMD modules in build/
-npm run agent:validate  # architecture checks (layers, governance, naming)
+npm test              # no NetSuite account needed
+npm run build         # TypeScript -> AMD modules in build/, checks every import resolves
+npm run agent:validate  # architecture checks (layers, governance, core stays platform-free)
 ```
 
-To try it in NetSuite: deploy to a **sandbox**, create a Scheduled Script
-record for `ss_inventory_reorder.js`, leave `custscript_reorder_create_pos`
-unchecked, run it once, and read the Execution Log.
+## Deploying to NetSuite
+
+Script records, deployments, and their parameters are **generated**, so a
+deploy installs everything. There is nothing to click through in the NetSuite UI.
+
+1. Scripts and parameters are declared once in
+   [`src/netsuite/deploy/manifest.ts`](src/netsuite/deploy/manifest.ts).
+   The scripts read their parameter ids from the same file.
+2. `npm run stage` copies `build/` into the SuiteCloud project and runs
+   `npm run sdf`, which writes `suitecloud/src/Objects/*.xml`.
+3. `npm run deploy` (or the GitHub Actions workflow) uploads files and objects
+   together.
+
+What gets installed:
+
+| Script | Deployment status | Parameters |
+|---|---|---|
+| Shopfloor: Inventory Reorder | Not scheduled | Business profile, stock saved search, **Create purchase orders (off)**, PO location |
+| Shopfloor: Daily Close | Not scheduled | Business profile (`retail`), date override |
+| Shopfloor: API (RESTlet) | Testing (owner only) | Business profile |
+
+Nothing runs on its own after the first deploy. Open the deployment, click
+**Save and Execute** to try a dry run, read the Execution Log, then add a
+schedule and tick **Create purchase orders** when you are ready.
+
+The generator checks NetSuite's id rules before writing: `customscript_` /
+`customdeploy_` / `custscript_` prefixes, length limits, and that parameter ids
+are unique across the account. CI runs `npm run sdf:check` so the committed XML
+can never drift from the manifest.
+
+Deploying needs the SuiteCloud CLI, which needs Java. The GitHub Actions
+workflow installs both. To deploy from your own machine, install Java 17+
+and `npm i -g @oracle/suitecloud-cli`.
 
 ## Making it yours
 
-1. Pick or copy a profile in `src/profiles/index.ts`.
-2. Put the pure math in `src/domain/` (no `N/*` imports, so it is trivially testable).
-3. Wrap NetSuite access in a DAO and orchestration in a service.
-4. Expose it via a script (scheduled, user event, RESTlet).
-5. Add tests next to the code in `__tests__/`.
+1. Pick or copy a profile in `src/core/profiles/index.ts`.
+2. Put the pure math in `src/core/domain/`.
+3. Add a service in `src/core/services/` that talks only to ports.
+4. If it needs new data, add a port and implement it in `src/core/adapters/memory`
+   and `src/netsuite/adapter`.
+5. Expose it with a script in `src/netsuite/scripts/` and add it to
+   `src/netsuite/deploy/manifest.ts`.
+6. Add tests next to the code in `__tests__/`.
 
 ## Not included (yet)
 
-Contributions welcome: SuiteCloud object XML for script records and parameters,
-lot/serial tracking, multi-location transfers, a Suitelet dashboard for the
-daily close, and demand calculation from sales history.
+Contributions welcome: adapters for other systems, lot/serial tracking,
+multi-location transfers, a Suitelet dashboard for the daily close, and
+demand calculation from sales history.
 
 ---
 
-The rest of this document covers the underlying architecture.
-
-
-A production-grade SuiteScript 2.1 framework in TypeScript. Layered architecture
-that separates script entry points, business logic, data access, and shared
-utilities — making NetSuite customizations testable, maintainable, and reviewable.
-
+The rest of this document covers the NetSuite layer (`src/netsuite`) in depth.
 
 ## How It Works
 
@@ -268,95 +363,82 @@ Jest's `moduleNameMapper` redirects `N/*` imports to these mocks automatically.
 
 ```
 src/
-  profiles/               Business profiles (general, manufacturing, retail)
-    index.ts              PROFILES, getProfile()
-  domain/                 Pure business math, no N/* imports
-    inventory.ts          suggestReorder(), groupByVendor(), roundUpTo()
-    production.ts         planBuildQuantity(), explodeBom(), findShortages()
-    retail.ts             summarizeDay()
-  constants/              Enums, field IDs, governance thresholds
-    index.ts              RecordType, TransactionStatus, ExecutionContext,
-                          Fields, Sublists, Governance
-  types/                  Shared TypeScript interfaces
-    index.ts              SearchFilter, SearchResultRow, RestletRequest/Response,
-                          SalesOrderData, CustomerData, IntegrationConfig, etc.
-  utils/
-    logger.ts             Wraps N/log. Prefixes every entry with script ID.
-    governance.ts         shouldYield(), getRemainingUsage(), getScriptParameter()
-    errors.ts             NetSuiteError hierarchy (5 subclasses)
-    search.ts             runSearch(), runSavedSearch(), lookupField(s)
-    http.ts               get/post/put with retry on 408/429/5xx
-    index.ts              Barrel export
-  dao/
-    BaseDAO.ts            Abstract CRUD: load, create, update, remove, submitFields
-    SalesOrderDAO.ts      Typed SO creation with line-level validation
-    CustomerDAO.ts        Typed customer creation with field mapping
-    PurchaseOrderDAO.ts   Restock POs per vendor
-    WorkOrderDAO.ts       Assembly work orders
-    index.ts              Barrel export
-  services/
-    BaseService.ts        execute() wrapper: logging + error normalization
-    SalesOrderService.ts  Order lifecycle: create, close, search, bulk update
-    CustomerService.ts    Customer lifecycle: create with dedup, search, update
-    IntegrationService.ts External sync: push, pull, webhooks, health check
-    InventoryService.ts   Reorder planning and per-vendor purchase orders
-    ProductionService.ts  Build sizing, shortages, work order creation
-    RetailService.ts      Daily cash sale close-out
-    index.ts              Barrel export
-  scripts/
-    restlet/
-      rl_api_router.ts    Route-based dispatcher for external API access
-    userevent/
-      ue_sales_order.ts   Record lifecycle hooks (beforeLoad/Submit, afterSubmit)
-    scheduled/
-      ss_batch_processor.ts  Governance-aware batch with self-reschedule
-      ss_inventory_reorder.ts  Nightly reorder check (dry run by default)
-      ss_daily_close.ts      End-of-day retail close-out
-    mapreduce/
-      mr_order_processor.ts  4-stage parallel processing pipeline
-    suitelet/
-      sl_integration_form.ts Custom UI form with server-side rendering
-    client/
-      cs_sales_order.ts   Browser-side field validation and UI behavior
-test/
-  __mocks__/N/            Jest mocks for N/log, N/runtime, N/record, N/search
-src/*/__tests__/          Co-located test files (94 tests across 13 suites)
+  core/                     Platform-agnostic. No N/* imports allowed.
+    profiles/index.ts       PROFILES, getProfile()
+    domain/
+      inventory.ts          suggestReorder(), groupByVendor(), roundUpTo()
+      production.ts         planBuildQuantity(), explodeBom(), findShortages()
+      retail.ts             summarizeDay()
+    ports/index.ts          StockSource, PurchaseOrderWriter, WorkOrderWriter, SalesSource, Logger
+    services/               InventoryService, ProductionService, RetailService
+    adapters/memory/        MemoryBackend: every port, backed by arrays
+    errors.ts               ShopfloorError, ValidationError, NotFoundError
+    index.ts                Public entry point for the core
+  netsuite/
+    adapter/
+      config.ts             Every NetSuite record type, field id, and column
+      index.ts              NetSuiteBackend: implements the core ports
+      runtime.ts            shopfloor(): wires core services for a script
+    deploy/
+      manifest.ts           Script records, deployments, parameters (source for SDF XML)
+    constants/              RecordType, TransactionStatus, Fields, Sublists, Governance
+    types/                  SearchFilter, SearchResultRow, RestletRequest/Response, ...
+    utils/
+      logger.ts             Wraps N/log. Prefixes every entry with script ID.
+      governance.ts         shouldYield(), getRemainingUsage(), getScriptParameter()
+      errors.ts             NetSuite errors, built on the core error classes
+      search.ts             runSearch(), runSavedSearch(), lookupField(s)
+      http.ts               get/post/put with retry on 408/429/5xx
+    dao/                    BaseDAO, SalesOrderDAO, CustomerDAO
+    services/               BaseService, SalesOrderService, CustomerService, IntegrationService
+    scripts/
+      restlet/rl_api_router.ts          JSON API (ping, profile, reorderPreview, scheduleBuild, closeDay)
+      scheduled/ss_inventory_reorder.ts Reorder check (dry run by default)
+      scheduled/ss_daily_close.ts       End-of-day retail close-out
+      scheduled/ss_batch_processor.ts   Governance-aware batch with self-reschedule (template)
+      userevent/ue_sales_order.ts       Record lifecycle hooks
+      mapreduce/mr_order_processor.ts   4-stage parallel processing pipeline (template)
+      suitelet/sl_integration_form.ts   Custom UI form (template)
+      client/cs_sales_order.ts          Browser-side field validation
+scripts/
+  generate-sdf.ts           manifest.ts -> suitecloud/src/Objects/*.xml
+  check-amd.js              Fails the build if any AMD import cannot resolve in NetSuite
+  stage-suitecloud.sh       Copies build/ into the SuiteCloud project
+suitecloud/src/Objects/     Generated script records (committed, checked in CI)
+test/__mocks__/N/           Jest mocks for N/log, N/runtime, N/record, N/search
 ```
-
-
-## Script Types
-
-| Prefix | Type           | Entry Points                                     | Governance        |
-|--------|----------------|--------------------------------------------------|-------------------|
-| rl_    | RESTlet        | get, post, put, delete_                          | 5,000 units       |
-| ue_    | User Event     | beforeLoad, beforeSubmit, afterSubmit            | 1,000 units       |
-| ss_    | Scheduled      | execute                                          | 10,000 units      |
-| mr_    | Map/Reduce     | getInputData, map, reduce, summarize             | 10,000 per stage  |
-| sl_    | Suitelet       | onRequest                                        | 5,000 units       |
-| cs_    | Client Script  | pageInit, fieldChanged, saveRecord, validateLine | 1,000 units       |
 
 
 ## Setup
 
 ```sh
 npm install
-npm run build        # Compile TypeScript → build/ (AMD modules)
-npm test             # Run 94 tests with N/* mocks
-npm run lint         # ESLint check
-npm run deploy       # SuiteCloud CLI deploy to NetSuite (requires suitecloud.config.js)
+npm run build        # Compile TypeScript -> build/ (AMD modules) and check imports
+npm test             # Jest, with N/* mocks for the NetSuite layer
+npm run lint         # ESLint, including the core/NetSuite boundary rule
+npm run stage        # Copy build/ into suitecloud/ and regenerate SDF objects
+npm run deploy       # SuiteCloud CLI deploy (needs Java + suitecloud CLI)
 ```
+
+NetSuite's AMD loader does not resolve a folder to its `index.js`. Import
+barrels with an explicit path (`'../core/profiles/index'`, not
+`'../core/profiles'`). `npm run build` fails if you forget.
 
 
 ## Adding a New Record Type
 
-1. Add the record type to `RecordType` enum in `src/constants/index.ts`.
+1. Add the record type to `RecordType` in `src/netsuite/constants/index.ts`.
 2. Add field ID constants if the record has custom fields.
-3. Create `src/dao/MyRecordDAO.ts` extending `BaseDAO`.
-4. Create `src/services/MyRecordService.ts` extending `BaseService`.
-5. Create the script entry point in `src/scripts/<type>/`.
+3. Create `src/netsuite/dao/MyRecordDAO.ts` extending `BaseDAO`.
+4. Create `src/netsuite/services/MyRecordService.ts` extending `BaseService`.
+5. Create the script entry point in `src/netsuite/scripts/<type>/` and add it
+   to `src/netsuite/deploy/manifest.ts`.
 6. Add JSDoc tags: `@NApiVersion 2.1`, `@NScriptType`, `@NModuleScope SameAccount`.
 7. Write tests using the mocks in `test/__mocks__/N/`.
 8. Export from barrel files (`dao/index.ts`, `services/index.ts`).
+
+If the logic is not NetSuite-specific, put it in `src/core` instead (see
+"Making it yours").
 
 
 ## Naming Conventions
@@ -383,7 +465,7 @@ SuiteCloud CLI uploads it to NetSuite.
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `ci.yml` | PRs, pushes to main | lint, test, build, stage, upload artifact |
+| `ci.yml` | PRs, pushes to main | lint, test, build, SDF drift check, architecture checks, stage, upload artifact |
 | `deploy-sandbox.yml` | push to main, manual | build and deploy to the `sandbox` account |
 | `deploy-production.yml` | `v*` tag, manual (dry run default) | build and deploy to the `production` account |
 | `deploy-netsuite.yml` | reusable | shared build, auth, validate, deploy steps |
@@ -394,5 +476,5 @@ Setup TODOs:
    credentials (certificate) for a deploy role.
 3. Add Environment secrets: `NS_ACCOUNT_ID`, `NS_CERTIFICATE_ID`, `NS_PRIVATE_KEY`.
 4. Verify `suitecloud account:setup:ci` flags against your CLI version.
-5. Add Script/Deployment XML objects under `suitecloud/src/Objects/` and enable
-   them in `suitecloud/src/deploy.xml`. Until then, deploys only upload files.
+5. Script records and deployments are generated by `npm run stage` (see
+   "Deploying to NetSuite" above), so deploys install everything.

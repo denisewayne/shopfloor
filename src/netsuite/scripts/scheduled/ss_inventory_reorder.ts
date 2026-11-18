@@ -2,10 +2,10 @@
  * Scheduled Script: nightly reorder check.
  *
  * Finds items at or below their reorder point and creates one purchase order
- * per preferred vendor. Ships in dry-run mode: tick the "Create purchase
- * orders" parameter once the logged suggestions look right.
+ * per preferred vendor. Ships in dry-run mode: tick "Create purchase orders"
+ * on the deployment once the logged suggestions look right.
  *
- * Parameter ids come from src/netsuite/adapter/config.ts (params section).
+ * Script record, deployment, and parameters: src/netsuite/deploy/manifest.ts
  *
  * @NApiVersion 2.1
  * @NScriptType ScheduledScript
@@ -17,25 +17,27 @@ import { shouldYield } from '../../utils/governance';
 import { defaultNetSuiteConfig, makeNetSuiteConfig } from '../../adapter/config';
 import { param, shopfloor } from '../../adapter/runtime';
 import { netSuiteLogger } from '../../adapter/index';
+import { SCRIPTS } from '../../deploy/manifest';
+
+const P = SCRIPTS.inventoryReorder.params;
 
 export const execute: EntryPoints.Scheduled.execute = (): void => {
-  const p = defaultNetSuiteConfig.params;
-  const savedSearchId = param(p.reorderSearch);
+  const savedSearchId = param(P.savedSearch.id);
   const config = savedSearchId
     ? makeNetSuiteConfig({ inventory: { savedSearchId: String(savedSearchId) } })
     : defaultNetSuiteConfig;
 
-  const sf = shopfloor(config);
+  const sf = shopfloor(P.profile.id, 'general', config);
   const stock = sf.backend.listStock();
   if (shouldYield()) {
     netSuiteLogger.warn('Reorder: low governance after loading stock, stopping early');
     return;
   }
 
-  const location = param(p.reorderLocation);
+  const location = param(P.location.id);
   const result = sf.inventory.run({
     stock,
-    dryRun: param(p.reorderCreatePos) !== true,
+    dryRun: param(P.createPos.id) !== true,
     locationId: location ? String(location) : undefined,
   });
 

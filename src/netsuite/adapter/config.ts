@@ -2,6 +2,8 @@
  * NetSuite configuration: every account-specific ID Shopfloor touches lives
  * here. Edit this file (or override per deployment) instead of the code.
  *
+ * Script parameter ids live in src/netsuite/deploy/manifest.ts.
+ *
  * Column labels on the left are what the adapter reads. Field and column IDs
  * on the right are NetSuite's. If your account stores lead time in a custom
  * field, change `leadtime: 'leadtime'` to `leadtime: 'custitem_lead_days'`.
@@ -43,14 +45,6 @@ export interface NetSuiteConfig {
     recordType: string;
     columns: { item: string; quantity: string; amount: string; payment: string };
   };
-  /** Script deployment parameter ids. */
-  params: {
-    profile: string;
-    reorderSearch: string;
-    reorderCreatePos: string;
-    reorderLocation: string;
-    closeDate: string;
-  };
 }
 
 export const defaultNetSuiteConfig: NetSuiteConfig = {
@@ -74,13 +68,6 @@ export const defaultNetSuiteConfig: NetSuiteConfig = {
     recordType: 'cashsale',
     columns: { item: 'item', quantity: 'quantity', amount: 'amount', payment: 'paymentmethod' },
   },
-  params: {
-    profile: 'custscript_sf_profile',
-    reorderSearch: 'custscript_sf_reorder_ss',
-    reorderCreatePos: 'custscript_sf_create_pos',
-    reorderLocation: 'custscript_sf_reorder_loc',
-    closeDate: 'custscript_sf_close_date',
-  },
 };
 
 type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
@@ -103,6 +90,5 @@ export function makeNetSuiteConfig(overrides: DeepPartial<NetSuiteConfig> = {}):
       ...(o.sales as Partial<NetSuiteConfig['sales']>),
       columns: { ...d.sales.columns, ...(o.sales?.columns as Partial<NetSuiteConfig['sales']['columns']>) },
     },
-    params: { ...d.params, ...(o.params as Partial<NetSuiteConfig['params']>) },
   };
 }

@@ -18,6 +18,8 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm run sdf:check
+      - run: npm run agent:validate
       - run: npm run stage
       - uses: actions/upload-artifact@v4
         with:

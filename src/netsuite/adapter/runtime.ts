@@ -1,5 +1,5 @@
 /**
- * Helpers for script entry points: resolve the active profile and build
+ * Helpers for script entry points: read deployment parameters and build
  * core services wired to the NetSuite backend.
  */
 import { BusinessProfile, getProfile } from '../../core/profiles/index';
@@ -16,20 +16,26 @@ export function param(name: string): string | number | boolean | null {
   }
 }
 
-/** Profile from the deployment parameter, or the given fallback. */
-export function activeProfile(config: NetSuiteConfig = defaultNetSuiteConfig, fallback?: string): BusinessProfile {
-  const v = param(config.params.profile);
-  return getProfile(v ? String(v) : fallback);
-}
-
-export function shopfloor(config: NetSuiteConfig = defaultNetSuiteConfig, fallbackProfile?: string): {
+export interface Shopfloor {
   profile: BusinessProfile;
   backend: NetSuiteBackend;
   inventory: InventoryService;
   production: ProductionService;
   retail: RetailService;
-} {
-  const profile = activeProfile(config, fallbackProfile);
+}
+
+/**
+ * Wire up services for the current script.
+ * @param profileParam deployment parameter holding the profile id
+ * @param fallbackProfile used when the parameter is blank
+ */
+export function shopfloor(
+  profileParam: string,
+  fallbackProfile?: string,
+  config: NetSuiteConfig = defaultNetSuiteConfig
+): Shopfloor {
+  const v = param(profileParam);
+  const profile = getProfile(v ? String(v) : fallbackProfile);
   const backend = new NetSuiteBackend(config);
   const deps = { logger: netSuiteLogger };
   return {

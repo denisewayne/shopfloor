@@ -1,0 +1,5 @@
+{
+  "extends": "../agent/tsconfig.json",
+  "compilerOptions": { "outDir": "../build/tools", "rootDir": ".." },
+  "include": ["*.ts", "../src/netsuite/deploy/*.ts"]
+}

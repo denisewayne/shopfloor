@@ -2,13 +2,29 @@
 
 ## Project Identity
 
-This is an open-source NetSuite SuiteScript 2.1 TypeScript starter aimed at
-small companies, light manufacturers, and local shops. Business rules live in
-`src/profiles/` (plain data) and `src/domain/` (pure functions, no N/* imports).
-New business logic should follow that split: math in domain, NetSuite access
-in DAOs, orchestration in services. New modules must default to dry run.
+Shopfloor is open-source operations logic (inventory reorder, production
+planning, daily close-out) for small companies, light manufacturers, and local
+shops. It has two halves:
 
-It compiles to AMD
+- `src/core/` is **platform-agnostic**: profiles (business rules as data),
+  domain (pure math), ports (interfaces), services, and an in-memory backend.
+  It must never import `N/*` or anything under `src/netsuite/`. ESLint and
+  `npm run agent:validate` enforce this.
+- `src/netsuite/` is the NetSuite adapter: it implements the core ports
+  (`adapter/`), keeps every record type and field id in `adapter/config.ts`,
+  and declares script records, deployments, and parameters in
+  `deploy/manifest.ts`, from which `npm run sdf` generates SuiteCloud XML.
+
+Rules for new work:
+- Math goes in `core/domain`, orchestration in `core/services`, data access
+  behind a port. Only NetSuite-specific code goes in `src/netsuite`.
+- New modules default to dry run.
+- New script parameters go in `deploy/manifest.ts`, never as string literals in
+  a script. Parameter ids are account-wide and max 30 characters.
+- Import barrels with an explicit `/index` path. NetSuite's AMD loader cannot
+  resolve folders, and `npm run build` fails on unresolvable imports.
+
+The NetSuite half compiles to AMD
 modules deployed to NetSuite's server-side JavaScript runtime via the SuiteCloud
 CLI or File Cabinet upload. It is NOT a Node.js application — there is no
 Express server, no package runtime, no Docker container. The N/* modules
@@ -69,14 +85,25 @@ saved in afterSubmit — re-throwing just creates noise.
 ## File Organization
 
 ```
-src/constants/index.ts      — RecordType, TransactionStatus, ExecutionContext, Fields, Sublists, Governance
-src/types/index.ts          — All shared interfaces (SearchFilter, RestletRequest, domain entities)
-src/utils/*.ts              — Logger, governance, errors, search, http (barrel: utils/index.ts)
-src/dao/*.ts                — BaseDAO + one concrete DAO per record type (barrel: dao/index.ts)
-src/services/*.ts           — BaseService + domain services (barrel: services/index.ts)
-src/scripts/<type>/<prefix>_<name>.ts — Script entry points (6 types)
-test/__mocks__/N/*.ts       — Jest mocks for N/log, N/runtime, N/record, N/search
-src/*/__tests__/*.test.ts   — Co-located tests
+src/core/profiles/index.ts          — Business profiles (plain data)
+src/core/domain/*.ts                — Pure business math
+src/core/ports/index.ts             — Interfaces a back end implements
+src/core/services/*.ts              — Platform-agnostic orchestration
+src/core/adapters/memory/index.ts   — In-memory backend (tests, demos)
+src/core/errors.ts                  — ShopfloorError, ValidationError, NotFoundError
+src/netsuite/adapter/config.ts      — All NetSuite record types, field ids, columns
+src/netsuite/adapter/index.ts       — NetSuiteBackend (implements core ports)
+src/netsuite/adapter/runtime.ts     — shopfloor(): wire services in a script
+src/netsuite/deploy/manifest.ts     — Script records, deployments, parameters
+src/netsuite/constants/index.ts     — RecordType, TransactionStatus, Fields, Sublists, Governance
+src/netsuite/types/index.ts         — NetSuite-layer interfaces (SearchFilter, RestletRequest, ...)
+src/netsuite/utils/*.ts             — Logger, governance, errors, search, http
+src/netsuite/dao/*.ts               — BaseDAO + one DAO per record type
+src/netsuite/services/*.ts          — BaseService + NetSuite-only services (sales orders, customers)
+src/netsuite/scripts/<type>/<prefix>_<name>.ts — Script entry points
+scripts/generate-sdf.ts             — manifest.ts -> suitecloud/src/Objects/*.xml
+test/__mocks__/N/*.ts               — Jest mocks for N/log, N/runtime, N/record, N/search
+src/**/__tests__/*.test.ts          — Co-located tests
 ```
 
 ## How to Add a New Feature
@@ -101,7 +128,7 @@ src/*/__tests__/*.test.ts   — Co-located tests
 4. Call `reschedule()` if work remains when governance is low.
 
 ### New Integration Endpoint
-1. Define the payload types in `src/types/index.ts`.
+1. Define the payload types in `src/netsuite/types/index.ts`.
 2. Add methods to `IntegrationService` or create a new service.
 3. Use `utils/http.ts` (get/post/put) — it handles retry and structured errors.
 4. Wire it into the appropriate script (afterSubmit hook, scheduled job, RESTlet).
@@ -130,12 +157,15 @@ src/*/__tests__/*.test.ts   — Co-located tests
 ## Build and Deploy
 
 ```sh
-npm run build      # tsc → build/   (AMD .js files)
+npm run build      # tsc -> build/ (AMD .js) + AMD import check
 npm test           # Jest with N/* mocks
-npm run lint       # ESLint
-npm run deploy     # suitecloud project:deploy (needs suitecloud.config.js)
+npm run lint       # ESLint (includes the core boundary rule)
+npm run stage      # copy build/ into suitecloud/ + regenerate SDF objects
+npm run sdf:check  # fail if suitecloud/src/Objects is out of date (CI runs this)
+npm run deploy     # suitecloud project:deploy: uploads files AND script records
 ```
 
-The build/ directory mirrors src/ structure. Upload to NetSuite's File Cabinet
-under SuiteScripts/, then create/update Script records pointing to the compiled
-.js files.
+Never hand-edit `suitecloud/src/Objects/*.xml`. Change
+`src/netsuite/deploy/manifest.ts` and run `npm run sdf`. Deployments are
+generated as NOTSCHEDULED (scheduled scripts) or TESTING (RESTlets) so nothing
+runs until someone turns it on in the account.

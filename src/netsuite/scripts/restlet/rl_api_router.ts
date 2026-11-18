@@ -11,7 +11,10 @@ import { Logger } from '../../utils/logger';
 import { RestletRequest, RestletResponse } from '../../types/index';
 import { NetSuiteError, ValidationError } from '../../utils/errors';
 import { BuildRequest } from '../../../core/services/index';
-import { shopfloor } from '../../adapter/runtime';
+import { shopfloor as wire } from '../../adapter/runtime';
+import { SCRIPTS } from '../../deploy/manifest';
+
+const shopfloor = (): ReturnType<typeof wire> => wire(SCRIPTS.api.params.profile.id, 'general');
 
 /**
  * Route-based RESTlet: dispatch by `action` field in the request body.
