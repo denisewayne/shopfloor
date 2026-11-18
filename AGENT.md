@@ -1,4 +1,4 @@
-# AGENT.md — NetSuite SMB Starter
+# AGENT.md — NetSuite Shopfloor
 
 ## Project Identity
 

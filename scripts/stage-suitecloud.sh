@@ -3,7 +3,7 @@
 # `suitecloud project:deploy` uploads them to the File Cabinet.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DEST="suitecloud/src/FileCabinet/SuiteScripts/netsuite-smb-starter"
+DEST="suitecloud/src/FileCabinet/SuiteScripts/netsuite-shopfloor"
 [ -d build ] || { echo "build/ missing. Run npm run build first." >&2; exit 1; }
 rm -rf "$DEST"
 mkdir -p "$DEST"

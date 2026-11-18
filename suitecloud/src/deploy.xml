@@ -1,6 +1,6 @@
 <deploy>
   <files>
-    <path>~/FileCabinet/SuiteScripts/netsuite-smb-starter/*</path>
+    <path>~/FileCabinet/SuiteScripts/netsuite-shopfloor/*</path>
   </files>
   <!-- TODO: once Script/Deployment XML objects exist in src/Objects, add:
   <objects>

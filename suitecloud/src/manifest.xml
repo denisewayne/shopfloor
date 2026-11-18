@@ -1,4 +1,4 @@
 <manifest projecttype="ACCOUNTCUSTOMIZATION">
-  <projectname>netsuite-smb-starter</projectname>
+  <projectname>netsuite-shopfloor</projectname>
   <frameworkversion>1.0</frameworkversion>
 </manifest>
