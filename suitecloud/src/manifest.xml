@@ -1,4 +1,4 @@
 <manifest projecttype="ACCOUNTCUSTOMIZATION">
-  <projectname>netsuite-ts-framework</projectname>
+  <projectname>netsuite-smb-starter</projectname>
   <frameworkversion>1.0</frameworkversion>
 </manifest>

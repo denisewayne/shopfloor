@@ -1,6 +1,6 @@
 <deploy>
   <files>
-    <path>~/FileCabinet/SuiteScripts/netsuite-ts-framework/*</path>
+    <path>~/FileCabinet/SuiteScripts/netsuite-smb-starter/*</path>
   </files>
   <!-- TODO: once Script/Deployment XML objects exist in src/Objects, add:
   <objects>

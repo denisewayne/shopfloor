@@ -1,8 +1,14 @@
-# AGENT.md — NetSuite TypeScript Integration Framework
+# AGENT.md — NetSuite SMB Starter
 
 ## Project Identity
 
-This is a NetSuite SuiteScript 2.1 TypeScript framework. It compiles to AMD
+This is an open-source NetSuite SuiteScript 2.1 TypeScript starter aimed at
+small companies, light manufacturers, and local shops. Business rules live in
+`src/profiles/` (plain data) and `src/domain/` (pure functions, no N/* imports).
+New business logic should follow that split: math in domain, NetSuite access
+in DAOs, orchestration in services. New modules must default to dry run.
+
+It compiles to AMD
 modules deployed to NetSuite's server-side JavaScript runtime via the SuiteCloud
 CLI or File Cabinet upload. It is NOT a Node.js application — there is no
 Express server, no package runtime, no Docker container. The N/* modules

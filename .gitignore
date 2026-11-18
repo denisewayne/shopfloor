@@ -6,5 +6,5 @@ build/
 .vscode/
 
 # SuiteCloud staging output (generated from build/)
-suitecloud/src/FileCabinet/SuiteScripts/netsuite-ts-framework/
+suitecloud/src/FileCabinet/SuiteScripts/netsuite-smb-starter/
 *.pem

@@ -57,3 +57,16 @@ export function getExecutionContext(): string {
 export function isContext(...contexts: string[]): boolean {
   return contexts.includes(getExecutionContext());
 }
+
+/**
+ * Business profile chosen on the script deployment
+ * (parameter `custscript_business_profile`). Returns the raw id or null.
+ */
+export function getProfileParameter(): string | null {
+  try {
+    const v = getScriptParameter('custscript_business_profile');
+    return v ? String(v) : null;
+  } catch (_e) {
+    return null;
+  }
+}

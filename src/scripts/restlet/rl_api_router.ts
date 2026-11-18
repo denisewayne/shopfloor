@@ -10,6 +10,11 @@ import { EntryPoints } from 'N/types';
 import { Logger } from '../../utils/logger';
 import { RestletRequest, RestletResponse } from '../../types';
 import { NetSuiteError, ValidationError } from '../../utils/errors';
+import { getProfileParameter } from '../../utils/governance';
+import { getProfile, BusinessProfile } from '../../profiles';
+import { InventoryService } from '../../services/InventoryService';
+import { ProductionService, BuildRequest } from '../../services/ProductionService';
+import { RetailService } from '../../services/RetailService';
 
 /**
  * Route-based RESTlet: dispatch by `action` field in the request body.
@@ -22,7 +27,37 @@ const routes: Record<string, RouteHandler> = {
   // 'getSalesOrder': (payload) => salesOrderService.get(payload),
   // 'createCustomer': (payload) => customerService.create(payload),
   ping: () => ({ message: 'pong', timestamp: new Date().toISOString() }),
+
+  /** Which business profile this deployment runs with. */
+  profile: () => activeProfile(),
+
+  /** Inventory: list restock suggestions without creating anything. */
+  reorderPreview: () => {
+    const service = new InventoryService(activeProfile());
+    return service.plan(service.loadStock());
+  },
+
+  /** Manufacturing: plan a build and (unless dryRun) create the work order. */
+  scheduleBuild: (payload) => {
+    const p = (payload ?? {}) as BuildRequest & { dryRun?: boolean; blockOnShortage?: boolean };
+    if (!p.assemblyId) throw new ValidationError('assemblyId is required', 'assemblyId');
+    return new ProductionService(activeProfile()).scheduleBuild(
+      { ...p, bom: p.bom ?? [], componentStock: p.componentStock ?? {} },
+      { dryRun: p.dryRun, blockOnShortage: p.blockOnShortage }
+    );
+  },
+
+  /** Retail: close out a day with the counted cash from the register. */
+  closeDay: (payload) => {
+    const p = (payload ?? {}) as { date?: string; countedCash?: number };
+    if (!p.date) throw new ValidationError('date is required', 'date');
+    return new RetailService(activeProfile()).closeDay(p.date, p.countedCash ?? null);
+  },
 };
+
+function activeProfile(): BusinessProfile {
+  return getProfile(getProfileParameter());
+}
 
 // ─── Entry Points ────────────────────────────────────────────────
 

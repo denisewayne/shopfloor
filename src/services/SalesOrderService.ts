@@ -11,13 +11,16 @@ import { RecordType, Fields, Sublists, TransactionStatus } from '../constants';
 import { ValidationError } from '../utils/errors';
 import { runSearch, lookupFields } from '../utils/search';
 import { Logger } from '../utils/logger';
+import { BusinessProfile, getProfile } from '../profiles';
 
 export class SalesOrderService extends BaseService {
   private readonly dao: SalesOrderDAO;
+  private readonly profile: BusinessProfile;
 
-  constructor() {
+  constructor(profile: BusinessProfile = getProfile()) {
     super('SalesOrderService');
     this.dao = new SalesOrderDAO();
+    this.profile = profile;
   }
 
   /**
@@ -151,9 +154,16 @@ export class SalesOrderService extends BaseService {
       throw new ValidationError('Order total must be greater than zero');
     }
 
-    // Business rule: no more than 500 lines
-    if (data.items.length > 500) {
-      throw new ValidationError('Orders cannot exceed 500 line items');
+    // Business rule: profile minimum order value
+    if (lineTotal < this.profile.orders.minOrderTotal) {
+      throw new ValidationError(
+        `Order total ${lineTotal} is below the ${this.profile.id} minimum of ${this.profile.orders.minOrderTotal}`
+      );
+    }
+
+    // Business rule: profile line cap
+    if (data.items.length > this.profile.orders.maxLines) {
+      throw new ValidationError(`Orders cannot exceed ${this.profile.orders.maxLines} line items`);
     }
 
     // Business rule: all items must have positive quantities
