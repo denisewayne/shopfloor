@@ -1,5 +1,5 @@
 /**
- * Daily sales close-out for a local shop. Pure functions.
+ * Daily sales close-out for point-of-sale operations. Pure functions.
  */
 import { BusinessProfile } from '../profiles/index';
 

@@ -1,13 +1,12 @@
 {
   "name": "shopfloor",
   "version": "1.0.0",
-  "description": "Open-source NetSuite SuiteScript 2.1 starter in TypeScript for small businesses, light manufacturers, and local shops",
+  "description": "shopfloor integration starter",
   "license": "MIT",
   "keywords": [
     "netsuite",
     "suitescript",
     "typescript",
-    "small-business",
     "manufacturing",
     "retail",
     "inventory",

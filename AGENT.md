@@ -2,9 +2,8 @@
 
 ## Project Identity
 
-Shopfloor is open-source operations logic (inventory reorder, production
-planning, daily close-out) for small companies, light manufacturers, and local
-shops. It has two halves:
+Shopfloor is an open-source shopfloor integration starter (inventory reorder,
+production planning, daily close-out). It has two halves:
 
 - `src/core/` is **platform-agnostic**: profiles (business rules as data),
   domain (pure math), ports (interfaces), services, and an in-memory backend.

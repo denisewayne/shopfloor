@@ -1,5 +1,5 @@
 /**
- * Production planning for light manufacturing. Pure functions.
+ * Production planning for assembly and batch manufacturing. Pure functions.
  */
 import { BusinessProfile } from '../profiles/index';
 import { roundUpTo } from './inventory';

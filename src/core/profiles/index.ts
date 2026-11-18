@@ -52,7 +52,7 @@ export interface BusinessProfile {
 export const PROFILES: Record<ProfileId, BusinessProfile> = {
   general: {
     id: 'general',
-    label: 'Small business (services, distribution, B2B)',
+    label: 'General (services, distribution, B2B)',
     modules: { inventoryReorder: true, production: false, dailySales: false },
     orders: { minOrderTotal: 0.01, maxLines: 500 },
     inventory: { safetyStockDays: 14, defaultLeadTimeDays: 7, defaultOrderMultiple: 1 },
@@ -61,7 +61,7 @@ export const PROFILES: Record<ProfileId, BusinessProfile> = {
   },
   manufacturing: {
     id: 'manufacturing',
-    label: 'Light manufacturing (assemblies, kits, batch production)',
+    label: 'Manufacturing (assemblies, kits, batch production)',
     modules: { inventoryReorder: true, production: true, dailySales: false },
     orders: { minOrderTotal: 50, maxLines: 500 },
     inventory: { safetyStockDays: 21, defaultLeadTimeDays: 14, defaultOrderMultiple: 10 },
@@ -70,7 +70,7 @@ export const PROFILES: Record<ProfileId, BusinessProfile> = {
   },
   retail: {
     id: 'retail',
-    label: 'Local shop (storefront, POS cash sales, small catalog)',
+    label: 'Retail (storefront, POS cash sales)',
     modules: { inventoryReorder: true, production: false, dailySales: true },
     orders: { minOrderTotal: 0.01, maxLines: 200 },
     inventory: { safetyStockDays: 7, defaultLeadTimeDays: 5, defaultOrderMultiple: 1 },

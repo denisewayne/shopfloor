@@ -1,14 +1,12 @@
 # Shopfloor
 
-Open-source operations logic for **small companies, light manufacturers, and
-local shops**: inventory reorder, production planning, and daily close-out.
-Written in TypeScript, platform-agnostic at the core, with a ready-to-deploy
-**NetSuite** adapter.
+A shopfloor integration starter: inventory reorder, production planning, and
+daily close-out. Written in TypeScript, platform-agnostic at the core, with a
+ready-to-deploy **NetSuite** adapter.
 
-Most ERP examples are either one-off snippets or enterprise frameworks. This
-repo sits in between: a small, tested codebase that solves the problems a 5 to
-200 person business actually has, built so the business rules do not care which
-system holds the data.
+Most ERP examples are either one-off snippets or large frameworks. This repo
+sits in between: a compact, tested template you can fork and adapt, built so the
+business rules do not care which system holds the data.
 
 > Status: example / reference implementation. **You do not need a NetSuite
 > account** to build, test, or run it: the core runs on plain Node with an
@@ -60,7 +58,7 @@ if it does.
 The core is its own build: `npm run build:core` compiles `src/core` to plain
 CommonJS with type definitions in `dist/core`, with no NetSuite code in it.
 `npm run demo` builds it and runs [`examples/demo.js`](examples/demo.js), which
-plays through a machine shop reorder, a production build, and a coffee shop
+plays through a reorder run, a production build, and a point-of-sale
 daily close using the in-memory backend.
 
 ```ts
@@ -88,13 +86,13 @@ lead time in a custom field, change one line:
 columns: { ...defaults, leadtime: 'custitem_lead_days' }
 ```
 
-## Who it is for
+## What is included
 
-| Business | Profile | What you get out of the box |
-|---|---|---|
-| Small company (services, distribution, B2B) | `general` | Order validation, customer dedup, nightly reorder suggestions, REST API |
-| Light manufacturer (assemblies, kits, batch production) | `manufacturing` | Everything above, plus build planning with batch sizes and scrap, BOM shortage checks, work order creation |
-| Local shop (storefront, POS cash sales) | `retail` | Everything in `general`, plus end-of-day close-out by payment method and cash drawer variance alerts |
+| Profile | What you get out of the box |
+|---|---|
+| `general` | Order validation, customer dedup, nightly reorder suggestions, REST API |
+| `manufacturing` | Everything above, plus build planning with batch sizes and scrap, BOM shortage checks, work order creation |
+| `retail` | Everything in `general`, plus end-of-day close-out by payment method and cash drawer variance alerts |
 
 ## Business profiles
 
@@ -173,8 +171,8 @@ npm run stage         # copy build/ into suitecloud/ and generate script records
 npm run agent:validate  # architecture checks (layers, governance, core stays platform-free)
 ```
 
-`npm run demo` plays through a machine shop reorder, a production build, and a
-coffee shop daily close, and prints the results.
+`npm run demo` plays through a reorder run, a production build, and a
+point-of-sale daily close, and prints the results.
 
 ## What is verified
 

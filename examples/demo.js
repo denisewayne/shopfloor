@@ -15,7 +15,7 @@ const {
 
 const line = (title) => console.log(`\n=== ${title} ===`);
 
-// ─── 1. Machine shop: reorder raw materials ────────────────────
+// ─── 1. Manufacturing: reorder raw materials ───────────────────
 line('Manufacturing: nightly reorder');
 const shop = new MemoryBackend({
   stock: [
@@ -40,7 +40,7 @@ for (const po of shop.purchaseOrders) {
   console.log(`  ${po.id} -> ${po.vendorId}: ${po.lines.map((l) => `${l.itemId} x${l.quantity}`).join(', ')}`);
 }
 
-// ─── 2. Machine shop: schedule a build ─────────────────────────
+// ─── 2. Manufacturing: schedule a build ────────────────────────
 line('Manufacturing: schedule a build');
 const production = new ProductionService({ workOrders: shop }, mfg);
 const build = production.scheduleBuild({
@@ -57,7 +57,7 @@ console.log(`  Build quantity: ${build.buildQuantity} (98 net, 3% scrap, batches
 console.log(`  Work order: ${build.workOrderId}`);
 for (const s of build.shortages) console.log(`  Short: ${s.itemId} needs ${s.required}, have ${s.available}`);
 
-// ─── 3. Coffee shop: close the day ─────────────────────────────
+// ─── 3. Retail: close the day ──────────────────────────────────
 line('Retail: daily close');
 const cafe = new MemoryBackend({
   sales: [
