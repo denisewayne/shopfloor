@@ -10,9 +10,11 @@ repo sits in between: a small, tested codebase that solves the problems a 5 to
 200 person business actually has, built so the business rules do not care which
 system holds the data.
 
-> Status: example / reference implementation. Every module ships in **dry-run
-> mode** so you can see what it would do before it writes a single record.
-> Try it in a sandbox account first.
+> Status: example / reference implementation. **You do not need a NetSuite
+> account** to build, test, or run it: the core runs on plain Node with an
+> in-memory backend. The NetSuite adapter is tested against mocks only and has
+> not yet been run in a live account. Every module ships in **dry-run mode**,
+> so try it in a sandbox account first.
 
 ## How it is organized
 
@@ -159,14 +161,35 @@ profile tolerance is logged at EMERGENCY level so it shows up in alerts.
 
 ## Quick start
 
+None of this needs a NetSuite account:
+
 ```sh
 nvm use               # Node 22 (see .nvmrc)
 npm install
-npm test              # no NetSuite account needed
+npm test              # unit tests, NetSuite modules are mocked
 npm run demo          # build the core and run the example scenarios
 npm run build         # dist/core (CommonJS + types) and build/ (NetSuite AMD)
+npm run stage         # copy build/ into suitecloud/ and generate script records
 npm run agent:validate  # architecture checks (layers, governance, core stays platform-free)
 ```
+
+`npm run demo` plays through a machine shop reorder, a production build, and a
+coffee shop daily close, and prints the results.
+
+## What is verified
+
+| Area | How it is checked | Needs NetSuite? |
+|---|---|---|
+| Business math (reorder, build sizing, daily close) | Unit tests with hand-checked numbers | No |
+| Core services (dry run, one PO per vendor, shortages) | Tests and `npm run demo` against the in-memory backend | No |
+| Core builds as a standalone package | `npm run build:core`, run by the demo | No |
+| NetSuite scripts compile and every import resolves for NetSuite's loader | `npm run build` | No |
+| Generated script record XML is well formed and matches the manifest | Tests and `npm run sdf:check` | No |
+| NetSuite searches and record writes | Tests against simple N/* mocks only | No, but mocks accept wrong field ids |
+| Field ids, required fields, and XML accepted by a real account | **Not yet verified** | **Yes** |
+
+The last row is the gap. Before relying on the NetSuite adapter, run it once in
+a sandbox (see "Deploying to NetSuite").
 
 ## Deploying to NetSuite
 
@@ -198,9 +221,19 @@ The generator checks NetSuite's id rules before writing: `customscript_` /
 are unique across the account. CI runs `npm run sdf:check` so the committed XML
 can never drift from the manifest.
 
-Deploying needs the SuiteCloud CLI, which needs Java. The GitHub Actions
-workflow installs both. To deploy from your own machine, install Java 17+
-and `npm i -g @oracle/suitecloud-cli`.
+Deploying needs a NetSuite account (a sandbox is best), plus the SuiteCloud
+CLI, which needs Java. The GitHub Actions workflow installs both. To deploy from
+your own machine, install Java 17+ and `npm i -g @oracle/suitecloud-cli`.
+
+First run checklist in a sandbox:
+1. `npm run validate` (or the workflow's dry run) so NetSuite checks the XML
+   and file references without changing anything.
+2. Deploy, open **Shopfloor: Inventory Reorder**, click **Save and Execute**,
+   and read the Execution Log. Nothing is written in this mode.
+3. Adjust `src/netsuite/adapter/config.ts` if a column or field id does not
+   match your account.
+4. Tick **Create purchase orders** for one test run and check the purchase
+   order it creates.
 
 ## Making it yours
 
@@ -473,13 +506,20 @@ SuiteCloud CLI uploads it to NetSuite.
 | Workflow | Trigger | Does |
 |---|---|---|
 | `ci.yml` | PRs, pushes to main | lint, test, build, SDF drift check, architecture checks, stage, upload artifact |
-| `deploy-sandbox.yml` | push to main, manual | build and deploy to the `sandbox` account |
-| `deploy-production.yml` | `v*` tag, manual (dry run default) | build and deploy to the `production` account |
+| `deploy-sandbox.yml` | push to main, manual (**off by default**) | build and deploy to the `sandbox` account |
+| `deploy-production.yml` | `v*` tag, manual, dry run default (**off by default**) | build and deploy to the `production` account |
 | `deploy-netsuite.yml` | reusable | shared build, auth, validate, deploy steps |
 
-Deploys are **off by default**, so the repo works without a NetSuite account:
-the deploy workflows skip unless the repository variable `NETSUITE_DEPLOY` is
-set to `true`. CI (lint, tests, builds, demo, SDF check) always runs.
+### Turning on deploys
+
+Deploys are **off by default**, so the repo works without a NetSuite account.
+CI (lint, tests, builds, demo, SDF check) always runs.
+
+While deploys are off:
+- **Automatic triggers** (push to `main`, version tags) skip the deploy job. It
+  shows as *skipped* in the Actions tab, not failed.
+- **Manual runs** ("Run workflow" in the Actions tab) fail immediately with a
+  message explaining that deploys are off. No build or upload happens.
 
 To turn deploys on:
 1. Create GitHub Environments `sandbox` and `production` (add required reviewers to production).
@@ -489,3 +529,5 @@ To turn deploys on:
 4. Verify `suitecloud account:setup:ci` flags against your CLI version.
 5. Script records and deployments are generated by `npm run stage` (see
    "Deploying to NetSuite" above), so deploys install everything.
+6. Add the repository variable `NETSUITE_DEPLOY` = `true` (Settings > Secrets
+   and variables > Actions > Variables).

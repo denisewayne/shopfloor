@@ -12,9 +12,21 @@ on:
         default: false
 
 jobs:
+  # Deploys are off until you connect a NetSuite account. To turn on: repo
+  # Settings > Secrets and variables > Actions > Variables, add
+  # NETSUITE_DEPLOY = true (see README, "Turning on deploys").
+  #
+  # Automatic triggers skip quietly while it is off. A manual run fails
+  # right away with an explanation instead of half-running.
+  guard:
+    if: vars.NETSUITE_DEPLOY != 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::NetSuite deploys are turned off for this repository. Set the repository variable NETSUITE_DEPLOY=true after adding NetSuite credentials. See README: Turning on deploys."
+          exit 1
+
   sandbox:
-    # Off until you connect a NetSuite account. To turn on: repo Settings >
-    # Secrets and variables > Actions > Variables, add NETSUITE_DEPLOY = true.
     if: vars.NETSUITE_DEPLOY == 'true'
     uses: ./.github/workflows/deploy-netsuite.yml
     with:
