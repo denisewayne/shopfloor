@@ -1,4 +1,4 @@
 <manifest projecttype="ACCOUNTCUSTOMIZATION">
-  <projectname>netsuite-shopfloor</projectname>
+  <projectname>shopfloor</projectname>
   <frameworkversion>1.0</frameworkversion>
 </manifest>

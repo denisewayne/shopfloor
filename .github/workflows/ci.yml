@@ -22,4 +22,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: suitescripts
-          path: suitecloud/src/FileCabinet/SuiteScripts/netsuite-shopfloor/
+          path: suitecloud/src/FileCabinet/SuiteScripts/shopfloor/

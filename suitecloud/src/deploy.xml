@@ -1,6 +1,6 @@
 <deploy>
   <files>
-    <path>~/FileCabinet/SuiteScripts/netsuite-shopfloor/*</path>
+    <path>~/FileCabinet/SuiteScripts/shopfloor/*</path>
   </files>
   <!-- TODO: once Script/Deployment XML objects exist in src/Objects, add:
   <objects>

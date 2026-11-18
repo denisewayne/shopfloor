@@ -1,4 +1,4 @@
-# NetSuite Shopfloor
+# Shopfloor
 
 An open-source, TypeScript-first SuiteScript 2.1 starter for **small companies,
 light manufacturers, and local shops** running NetSuite.
@@ -378,7 +378,7 @@ Constants: lowercase with underscores in the enum values
 ## Deploying with GitHub Actions
 
 `npm run build` compiles to `build/`, `npm run stage` copies that into
-`suitecloud/src/FileCabinet/SuiteScripts/netsuite-shopfloor/`, and the
+`suitecloud/src/FileCabinet/SuiteScripts/shopfloor/`, and the
 SuiteCloud CLI uploads it to NetSuite.
 
 | Workflow | Trigger | Does |

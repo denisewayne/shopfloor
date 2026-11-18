@@ -6,5 +6,5 @@ build/
 .vscode/
 
 # SuiteCloud staging output (generated from build/)
-suitecloud/src/FileCabinet/SuiteScripts/netsuite-shopfloor/
+suitecloud/src/FileCabinet/SuiteScripts/shopfloor/
 *.pem

@@ -1,4 +1,4 @@
-# AGENT.md — NetSuite Shopfloor
+# AGENT.md — Shopfloor
 
 ## Project Identity
 
