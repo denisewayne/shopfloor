@@ -1,0 +1,93 @@
+# Reusable: build the TypeScript and push it to one NetSuite account.
+# Called by deploy-sandbox.yml and deploy-production.yml.
+name: Deploy to NetSuite (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment holding this account's secrets (sandbox | production)
+        required: true
+        type: string
+      dry_run:
+        description: Validate only, don't deploy
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    concurrency: netsuite-${{ inputs.environment }}   # never run two deploys to one account at once
+    env:
+      # TODO: set these as Environment secrets in GitHub (Settings > Environments).
+      NS_ACCOUNT_ID: ${{ secrets.NS_ACCOUNT_ID }}         # e.g. 1234567 or 1234567_SB1
+      NS_CERTIFICATE_ID: ${{ secrets.NS_CERTIFICATE_ID }} # from the OAuth 2.0 client credentials setup
+      NS_PRIVATE_KEY: ${{ secrets.NS_PRIVATE_KEY }}       # PEM private key matching the certificate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4   # SuiteCloud CLI requires Java 17
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install, test, build
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+          npm run stage
+
+      - name: Install SuiteCloud CLI
+        run: npm install -g --acceptSuiteCloudSDKLicense @oracle/suitecloud-cli
+
+      - name: Check secrets are configured
+        run: |
+          missing=0
+          for v in NS_ACCOUNT_ID NS_CERTIFICATE_ID NS_PRIVATE_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v is not set for environment '${{ inputs.environment }}'"; missing=1; fi
+          done
+          exit $missing
+
+      - name: Authenticate (CI, no browser)
+        working-directory: suitecloud
+        run: |
+          # STUB: verify flags against your SuiteCloud CLI version's docs.
+          echo "$NS_PRIVATE_KEY" > "$RUNNER_TEMP/ns-key.pem"
+          suitecloud account:setup:ci \
+            --account "$NS_ACCOUNT_ID" \
+            --authid "ci-${{ inputs.environment }}" \
+            --certificateid "$NS_CERTIFICATE_ID" \
+            --privatekeypath "$RUNNER_TEMP/ns-key.pem"
+
+      - name: Validate against account
+        working-directory: suitecloud
+        run: suitecloud project:validate --server
+
+      - name: Deploy
+        if: ${{ !inputs.dry_run }}
+        working-directory: suitecloud
+        run: suitecloud project:deploy
+
+      - name: Record deployment
+        if: ${{ !inputs.dry_run }}
+        run: |
+          {
+            echo "### Deployed to ${{ inputs.environment }}"
+            echo "- Account: \`$NS_ACCOUNT_ID\`"
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Ref: \`${{ github.ref_name }}\`"
+            echo "- By: @${{ github.actor }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ns-key.pem"

@@ -1,0 +1,20 @@
+name: Deploy Sandbox
+
+# Every merge to main updates the sandbox (staging) account.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate only
+        type: boolean
+        default: false
+
+jobs:
+  sandbox:
+    uses: ./.github/workflows/deploy-netsuite.yml
+    with:
+      environment: sandbox
+      dry_run: ${{ inputs.dry_run || false }}
+    secrets: inherit

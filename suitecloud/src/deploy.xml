@@ -1,0 +1,10 @@
+<deploy>
+  <files>
+    <path>~/FileCabinet/SuiteScripts/netsuite-ts-framework/*</path>
+  </files>
+  <!-- TODO: once Script/Deployment XML objects exist in src/Objects, add:
+  <objects>
+    <path>~/Objects/*</path>
+  </objects>
+  -->
+</deploy>

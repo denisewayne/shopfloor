@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "AMD",
+    "lib": ["ES2019"],
+    "rootDir": "src",
+    "outDir": "build",
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "esModuleInterop": false,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "N/*": ["node_modules/@hitc/netsuite-types/N/*"]
+    },
+    "sourceMap": false,
+    "declaration": false,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "build", "**/*.test.ts", "**/*.spec.ts"]
+}

@@ -1,0 +1,10 @@
+node_modules/
+build/
+.DS_Store
+*.js.map
+.env
+.vscode/
+
+# SuiteCloud staging output (generated from build/)
+suitecloud/src/FileCabinet/SuiteScripts/netsuite-ts-framework/
+*.pem

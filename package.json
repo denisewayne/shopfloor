@@ -1,0 +1,30 @@
+{
+  "name": "netsuite-ts-framework",
+  "version": "1.0.0",
+  "description": "NetSuite SuiteScript 2.x TypeScript integration framework",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint src/ --ext .ts",
+    "lint:fix": "eslint src/ --ext .ts --fix",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --watch",
+    "deploy": "npm run build && npm run stage && cd suitecloud && suitecloud project:deploy",
+    "validate": "npm run build && npm run stage && cd suitecloud && suitecloud project:validate",
+    "clean": "rm -rf build/",
+    "agent:validate": "ts-node --project agent/tsconfig.json agent/harness.ts validate",
+    "agent:scaffold": "ts-node --project agent/tsconfig.json agent/harness.ts scaffold",
+    "agent:context": "ts-node --project agent/tsconfig.json agent/harness.ts context",
+    "stage": "bash scripts/stage-suitecloud.sh"
+  },
+  "devDependencies": {
+    "@hitc/netsuite-types": "^2024.1.0",
+    "@types/jest": "^29.5.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  }
+}
