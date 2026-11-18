@@ -15,6 +15,9 @@ on:
 
 jobs:
   production:
+    # Off until you connect a NetSuite account. To turn on: repo Settings >
+    # Secrets and variables > Actions > Variables, add NETSUITE_DEPLOY = true.
+    if: vars.NETSUITE_DEPLOY == 'true'
     uses: ./.github/workflows/deploy-netsuite.yml
     with:
       environment: production

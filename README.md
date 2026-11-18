@@ -477,7 +477,11 @@ SuiteCloud CLI uploads it to NetSuite.
 | `deploy-production.yml` | `v*` tag, manual (dry run default) | build and deploy to the `production` account |
 | `deploy-netsuite.yml` | reusable | shared build, auth, validate, deploy steps |
 
-Setup TODOs:
+Deploys are **off by default**, so the repo works without a NetSuite account:
+the deploy workflows skip unless the repository variable `NETSUITE_DEPLOY` is
+set to `true`. CI (lint, tests, builds, demo, SDF check) always runs.
+
+To turn deploys on:
 1. Create GitHub Environments `sandbox` and `production` (add required reviewers to production).
 2. In each NetSuite account, create an Integration record with OAuth 2.0 client
    credentials (certificate) for a deploy role.
