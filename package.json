@@ -28,7 +28,9 @@
     "agent:context": "ts-node --project agent/tsconfig.json agent/harness.ts context",
     "stage": "bash scripts/stage-suitecloud.sh && npm run sdf --silent",
     "sdf": "ts-node --project scripts/tsconfig.json scripts/generate-sdf.ts",
-    "sdf:check": "npm run sdf -- --check"
+    "sdf:check": "npm run sdf -- --check",
+    "demo": "ts-node --project examples/tsconfig.json examples/demo.ts",
+    "test:core": "jest src/core --coverage --collectCoverageFrom=\"src/core/**/*.ts\" --collectCoverageFrom=\"!src/core/**/__tests__/**\""
   },
   "devDependencies": {
     "@hitc/netsuite-types": "^2024.1.0",
