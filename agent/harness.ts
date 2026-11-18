@@ -81,13 +81,13 @@ export class ${name}DAO extends BaseDAO {
   // TODO: Add field validation
 }
 `;
-  writeFile(`src/dao/${name}DAO.ts`, content);
-  appendBarrel('src/dao/index.ts', `export { ${name}DAO } from './${name}DAO';`);
-  console.log(`Created src/dao/${name}DAO.ts`);
-  console.log(`Updated src/dao/index.ts`);
+  writeFile(`src/netsuite/dao/${name}DAO.ts`, content);
+  appendBarrel('src/netsuite/dao/index.ts', `export { ${name}DAO } from './${name}DAO';`);
+  console.log(`Created src/netsuite/dao/${name}DAO.ts`);
+  console.log(`Updated src/netsuite/dao/index.ts`);
   console.log(`\nNext steps:`);
-  console.log(`  1. Add ${toScreamingSnake(name)} to RecordType enum in src/constants/index.ts`);
-  console.log(`  2. Add a data interface to src/types/index.ts`);
+  console.log(`  1. Add ${toScreamingSnake(name)} to RecordType enum in src/netsuite/constants/index.ts`);
+  console.log(`  2. Add a data interface to src/netsuite/types/index.ts`);
   console.log(`  3. Implement createFromData() with validation`);
   console.log(`  4. Run: npx ts-node agent/harness.ts scaffold test ${name} dao`);
 }
@@ -112,10 +112,10 @@ export class ${name}Service extends BaseService {
   // Every public method should use: return this.execute('methodName', () => { ... });
 }
 `;
-  writeFile(`src/services/${name}Service.ts`, content);
-  appendBarrel('src/services/index.ts', `export { ${name}Service } from './${name}Service';`);
-  console.log(`Created src/services/${name}Service.ts`);
-  console.log(`Updated src/services/index.ts`);
+  writeFile(`src/netsuite/services/${name}Service.ts`, content);
+  appendBarrel('src/netsuite/services/index.ts', `export { ${name}Service } from './${name}Service';`);
+  console.log(`Created src/netsuite/services/${name}Service.ts`);
+  console.log(`Updated src/netsuite/services/index.ts`);
 }
 
 function scaffoldScript(name: string, scriptType?: string): void {
@@ -159,7 +159,7 @@ function scaffoldScript(name: string, scriptType?: string): void {
 
   const spec = types[scriptType];
   const filename = `${spec.prefix}_${toSnakeCase(name)}.ts`;
-  const filepath = `src/scripts/${spec.dir}/${filename}`;
+  const filepath = `src/netsuite/scripts/${spec.dir}/${filename}`;
   writeFile(filepath, spec.template);
   console.log(`Created ${filepath}`);
 }
@@ -167,11 +167,11 @@ function scaffoldScript(name: string, scriptType?: string): void {
 function scaffoldTest(name: string, layer?: string): void {
   const layers: Record<string, { dir: string; template: string }> = {
     dao: {
-      dir: `src/dao/__tests__`,
+      dir: `src/netsuite/dao/__tests__`,
       template: daoTestTemplate(name),
     },
     service: {
-      dir: `src/services/__tests__`,
+      dir: `src/netsuite/services/__tests__`,
       template: serviceTestTemplate(name),
     },
   };
@@ -198,6 +198,7 @@ function validate(): void {
   errors += checkLayerDiscipline();
   errors += checkGovernanceGuards();
   errors += checkBarrelExports();
+  errors += checkCoreIsPlatformFree();
 
   console.log('');
   if (errors === 0) {
@@ -214,7 +215,7 @@ function checkJSDocTags(): number {
   const requiredTags = ['@NApiVersion', '@NScriptType', '@NModuleScope'];
 
   for (const dir of scriptDirs) {
-    const fullDir = path.join('src/scripts', dir);
+    const fullDir = path.join('src/netsuite/scripts', dir);
     if (!fs.existsSync(fullDir)) continue;
 
     for (const file of fs.readdirSync(fullDir).filter((f) => f.endsWith('.ts'))) {
@@ -244,7 +245,7 @@ function checkNamingConventions(): number {
   };
 
   for (const [dir, prefix] of Object.entries(prefixMap)) {
-    const fullDir = path.join('src/scripts', dir);
+    const fullDir = path.join('src/netsuite/scripts', dir);
     if (!fs.existsSync(fullDir)) continue;
 
     for (const file of fs.readdirSync(fullDir).filter((f) => f.endsWith('.ts'))) {
@@ -270,7 +271,7 @@ function checkLayerDiscipline(): number {
   const mrSearchAllowed = ["from 'N/search'", 'from "N/search"'];
 
   for (const dir of scriptDirs) {
-    const fullDir = path.join('src/scripts', dir);
+    const fullDir = path.join('src/netsuite/scripts', dir);
     if (!fs.existsSync(fullDir)) continue;
 
     for (const file of fs.readdirSync(fullDir).filter((f) => f.endsWith('.ts'))) {
@@ -286,7 +287,7 @@ function checkLayerDiscipline(): number {
   }
 
   // Services should not import N/record directly
-  const serviceDir = 'src/services';
+  const serviceDir = 'src/netsuite/services';
   if (fs.existsSync(serviceDir)) {
     for (const file of fs.readdirSync(serviceDir).filter((f) => f.endsWith('.ts') && !f.includes('index'))) {
       const content = fs.readFileSync(path.join(serviceDir, file), 'utf-8');
@@ -308,7 +309,7 @@ function checkGovernanceGuards(): number {
   // Map/Reduce scripts get per-stage governance from the platform, but should
   // still have yield checks in reduce for heavy per-key work.
   for (const dir of ['scheduled']) {
-    const fullDir = path.join('src/scripts', dir);
+    const fullDir = path.join('src/netsuite/scripts', dir);
     if (!fs.existsSync(fullDir)) continue;
 
     for (const file of fs.readdirSync(fullDir).filter((f) => f.endsWith('.ts'))) {
@@ -326,7 +327,7 @@ function checkGovernanceGuards(): number {
 
 function checkBarrelExports(): number {
   let errors = 0;
-  const barrels = ['src/dao/index.ts', 'src/services/index.ts', 'src/utils/index.ts'];
+  const barrels = ['src/netsuite/dao/index.ts', 'src/netsuite/services/index.ts', 'src/netsuite/utils/index.ts'];
 
   for (const barrel of barrels) {
     if (!fs.existsSync(barrel)) {
@@ -353,6 +354,24 @@ function checkBarrelExports(): number {
   return errors;
 }
 
+function checkCoreIsPlatformFree(): number {
+  let errors = 0;
+  const walk = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith('.ts') ? [path.join(dir, e.name)] : []
+    );
+  if (!fs.existsSync('src/core')) return 0;
+  for (const file of walk('src/core')) {
+    const content = fs.readFileSync(file, 'utf-8');
+    if (/from ['"]N\//.test(content) || /from ['"][./]*\/?netsuite\//.test(content)) {
+      console.log(`  CORE ${file} imports NetSuite code. Keep src/core platform-agnostic.`);
+      errors++;
+    }
+  }
+  if (errors === 0) console.log('  ✓ Core: src/core has no NetSuite imports');
+  return errors;
+}
+
 // ─── Context ─────────────────────────────────────────────────────
 
 function context(args: string[]): void {
@@ -372,7 +391,7 @@ function context(args: string[]): void {
   }
 
   // Always include the type definitions and constants as baseline context
-  const contextFiles = ['src/types/index.ts', 'src/constants/index.ts'];
+  const contextFiles = ['src/core/ports/index.ts', 'src/core/profiles/index.ts', 'src/netsuite/adapter/config.ts', 'src/netsuite/types/index.ts'];
   for (const cf of contextFiles) {
     if (fs.existsSync(cf) && !args.includes(cf)) {
       console.log(`\n=== ${cf} ===\n`);
@@ -628,7 +647,7 @@ function daoTestTemplate(name: string): string {
  * Tests for ${name}DAO.
  */
 import { ${name}DAO } from '../../dao/${name}DAO';
-import { _clearLogs } from '../../../test/__mocks__/N/log';
+import { _clearLogs } from '../../../../test/__mocks__/N/log';
 
 describe('${name}DAO', () => {
   let dao: ${name}DAO;
@@ -651,7 +670,7 @@ function serviceTestTemplate(name: string): string {
  * Tests for ${name}Service.
  */
 import { ${name}Service } from '../../services/${name}Service';
-import { _clearLogs } from '../../../test/__mocks__/N/log';
+import { _clearLogs } from '../../../../test/__mocks__/N/log';
 
 describe('${name}Service', () => {
   let service: ${name}Service;
@@ -727,6 +746,6 @@ Examples:
   npx ts-node agent/harness.ts scaffold script item_fulfillment userevent
   npx ts-node agent/harness.ts scaffold test ItemFulfillment dao
   npx ts-node agent/harness.ts validate
-  npx ts-node agent/harness.ts context src/services/SalesOrderService.ts
+  npx ts-node agent/harness.ts context src/netsuite/services/SalesOrderService.ts
 `);
 }

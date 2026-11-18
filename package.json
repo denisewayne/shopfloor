@@ -3,9 +3,18 @@
   "version": "1.0.0",
   "description": "Open-source NetSuite SuiteScript 2.1 starter in TypeScript for small businesses, light manufacturers, and local shops",
   "license": "MIT",
-  "keywords": ["netsuite", "suitescript", "typescript", "small-business", "manufacturing", "retail", "inventory", "starter"],
+  "keywords": [
+    "netsuite",
+    "suitescript",
+    "typescript",
+    "small-business",
+    "manufacturing",
+    "retail",
+    "inventory",
+    "starter"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/check-amd.js",
     "build:watch": "tsc --watch",
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --ext .ts --fix",
