@@ -55,8 +55,14 @@ if it does.
 
 ### Using the core without NetSuite
 
+The core is its own build: `npm run build:core` compiles `src/core` to plain
+CommonJS with type definitions in `dist/core`, with no NetSuite code in it.
+`npm run demo` builds it and runs [`examples/demo.js`](examples/demo.js), which
+plays through a machine shop reorder, a production build, and a coffee shop
+daily close using the in-memory backend.
+
 ```ts
-import { InventoryService, MemoryBackend, getProfile } from './src/core/index';
+import { InventoryService, MemoryBackend, getProfile } from 'shopfloor'; // dist/core
 
 const db = new MemoryBackend({
   stock: [{ itemId: 'BOLT-M6', name: 'M6 bolt', available: 40, onOrder: 0, dailyDemand: 12, vendorId: 'acme' }],
@@ -157,7 +163,8 @@ profile tolerance is logged at EMERGENCY level so it shows up in alerts.
 nvm use               # Node 22 (see .nvmrc)
 npm install
 npm test              # no NetSuite account needed
-npm run build         # TypeScript -> AMD modules in build/, checks every import resolves
+npm run demo          # build the core and run the example scenarios
+npm run build         # dist/core (CommonJS + types) and build/ (NetSuite AMD)
 npm run agent:validate  # architecture checks (layers, governance, core stays platform-free)
 ```
 

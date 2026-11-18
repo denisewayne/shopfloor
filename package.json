@@ -14,7 +14,7 @@
     "starter"
   ],
   "scripts": {
-    "build": "tsc && node scripts/check-amd.js",
+    "build": "npm run build:core && npm run build:netsuite",
     "build:watch": "tsc --watch",
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --ext .ts --fix",
@@ -29,8 +29,10 @@
     "stage": "bash scripts/stage-suitecloud.sh && npm run sdf --silent",
     "sdf": "ts-node --project scripts/tsconfig.json scripts/generate-sdf.ts",
     "sdf:check": "npm run sdf -- --check",
-    "demo": "ts-node --project examples/tsconfig.json examples/demo.ts",
-    "test:core": "jest src/core --coverage --collectCoverageFrom=\"src/core/**/*.ts\" --collectCoverageFrom=\"!src/core/**/__tests__/**\""
+    "demo": "npm run build:core --silent && node examples/demo.js",
+    "test:core": "jest src/core --coverage --collectCoverageFrom=\"src/core/**/*.ts\" --collectCoverageFrom=\"!src/core/**/__tests__/**\"",
+    "build:core": "rm -rf dist/core && tsc -p tsconfig.core.json",
+    "build:netsuite": "tsc && node scripts/check-amd.js"
   },
   "devDependencies": {
     "@hitc/netsuite-types": "^2024.1.0",
@@ -43,5 +45,12 @@
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.0"
-  }
+  },
+  "main": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "files": [
+    "dist/core",
+    "LICENSE",
+    "README.md"
+  ]
 }

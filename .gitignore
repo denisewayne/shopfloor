@@ -8,3 +8,4 @@ build/
 # SuiteCloud staging output (generated from build/)
 suitecloud/src/FileCabinet/SuiteScripts/shopfloor/
 *.pem
+dist/

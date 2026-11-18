@@ -17,7 +17,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - run: npm run build
+      - run: npm run build          # core (CommonJS + .d.ts) and NetSuite (AMD)
+      - run: npm run demo           # run the built core with no NetSuite
       - run: npm run sdf:check
       - run: npm run agent:validate
       - run: npm run stage

@@ -1,16 +1,19 @@
 /**
- * Shopfloor demo: runs every core module against the in-memory backend.
- * No NetSuite, no network. Run with: npm run demo
+ * Shopfloor demo: runs every core module against the in-memory backend,
+ * using the compiled build in dist/core exactly as any Node app would.
+ * No NetSuite, no network.
+ *
+ *   npm run demo        (builds dist/core, then runs this file)
  */
-import {
+const {
   getProfile,
   InventoryService,
   MemoryBackend,
   ProductionService,
   RetailService,
-} from '../src/core/index';
+} = require('../dist/core/index.js');
 
-const line = (title: string): void => console.log(`\n=== ${title} ===`);
+const line = (title) => console.log(`\n=== ${title} ===`);
 
 // ─── 1. Machine shop: reorder raw materials ────────────────────
 line('Manufacturing: nightly reorder');
@@ -25,7 +28,7 @@ const shop = new MemoryBackend({
 const mfg = getProfile('manufacturing');
 const inventory = new InventoryService({ stock: shop, purchaseOrders: shop }, mfg);
 
-const preview = inventory.run(); // dry run
+const preview = inventory.run(); // dry run is the default
 console.log('Dry run suggestions:');
 for (const s of preview.suggestions) console.log(`  ${s.name.padEnd(16)} order ${s.quantity}  (${s.reason})`);
 console.log(`  Purchase orders written: ${shop.purchaseOrders.length}`);
@@ -64,8 +67,7 @@ const cafe = new MemoryBackend({
     { date: '2026-11-18', transactionId: 't3', itemId: 'LATTE', itemName: 'Latte', quantity: 1, amount: 5.5, paymentMethod: 'Cash' },
   ],
 });
-const retail = new RetailService({ sales: cafe }, getProfile('retail'));
-const day = retail.closeDay('2026-11-18', 18.5);
+const day = new RetailService({ sales: cafe }, getProfile('retail')).closeDay('2026-11-18', 18.5);
 console.log(`  Transactions: ${day.transactions}, gross: $${day.grossSales}`);
 console.log(`  By payment: ${JSON.stringify(day.byPaymentMethod)}`);
 console.log(`  Top items: ${day.topItems.map((i) => `${i.itemName} $${i.amount}`).join(', ')}`);
